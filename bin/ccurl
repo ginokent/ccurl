@@ -1,0 +1,95 @@
+#!/bin/bash
+set -E -e -u -o pipefail
+
+#export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { test "$DEBUG" != true || echo "${*:?"log content"}" | sh -c "${pipe_debug:?}"  1>&2; }
+export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { echo "${*:?"log content"}" | sh -c "${pipe_debug:?}"  1>&2; }
+export   pipe_info="exec awk \"{print \\\"\\\\033[0;36m\$(date +%Y-%m-%dT%H:%M:%S%z) [  info] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   infoln () { echo "${*:?"log content"}" | sh -c "${pipe_info:?}"   1>&2; }
+export     pipe_ok="exec awk \"{print \\\"\\\\033[0;32m\$(date +%Y-%m-%dT%H:%M:%S%z) [    ok] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&     okln () { echo "${*:?"log content"}" | sh -c "${pipe_ok:?}"     1>&2; }
+export   pipe_warn="exec awk \"{print \\\"\\\\033[0;33m\$(date +%Y-%m-%dT%H:%M:%S%z) [  warn] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   warnln () { echo "${*:?"log content"}" | sh -c "${pipe_warn:?}"   1>&2; }
+export  pipe_error="exec awk \"{print \\\"\\\\033[0;31m\$(date +%Y-%m-%dT%H:%M:%S%z) [ error] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  errorln () { echo "${*:?"log content"}" | sh -c "${pipe_error:?}"  1>&2; }
+export  pipe_fatal="exec awk \"{print \\\"\\\\033[1;31m\$(date +%Y-%m-%dT%H:%M:%S%z) [ error] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  fatalln () { echo "${*:?"log content"}" | sh -c "${pipe_fatal:?}"  1>&2; }
+
+if test ! "${BASH_VERSINFO[0]}" -ge 3; then
+  errorln "bash 3.x or later is required"
+  exit 1
+fi
+
+PROG_NAME=ccurl
+NULL="${PROG_NAME:?}Null"
+
+extractCURLRawResponseHead () {
+  local curl_raw_response="${1:?"trimCURLRawResponse.curl_raw_response: parameter null or not set"}"
+  blank_line_number=$(echo "${curl_raw_response:?}" | grep -n -E "^[[:cntrl:]]*$" | head -n 1 | cat -e | cut -d: -f1 || echo 0)  # NOTE(k.ogino): curl のヘッダー情報などと body のデリミタとなる ^M だけの行の行数
+  echo "${curl_raw_response:?}" | head -n +$((blank_line_number))
+}
+
+extractCURLRawResponseTail () {
+  local curl_raw_response="${1:?"trimCURLRawResponse.curl_raw_response: parameter null or not set"}"
+  blank_line_number=$(echo "${curl_raw_response:?}" | grep -n -E "^[[:cntrl:]]*$" | head -n 1 | cat -e | cut -d: -f1 || echo 0)  # NOTE(k.ogino): curl のヘッダー情報などと body のデリミタとなる ^M だけの行の行数
+  echo "${curl_raw_response:?}" | tail -n +$((blank_line_number+1))
+}
+
+isResponseInfo () {
+  local curl_raw_response="${1:?"isResponseInfo.curl_raw_response: parameter null or not set"}"
+  echo "${curl_raw_response:?}" | grep -Eo "^HTTP/[0-9\.]+ [0-9][0-9][0-9][A-Za-z0-9[:blank:]]*" | head -n 1 | grep -Eq "^HTTP/[0-9\.]+ 1[0-9][0-9][A-Za-z0-9[:blank:]]*"
+}
+
+isResponseOK () {
+  local curl_raw_response="${1:?"isResponseOK.curl_raw_response: parameter null or not set"}"
+  echo "${curl_raw_response:?}" | grep -Eo "^HTTP/[0-9\.]+ [0-9][0-9][0-9][A-Za-z0-9[:blank:]]*" | head -n 1 | grep -Eq "^HTTP/[0-9\.]+ 2[0-9][0-9][A-Za-z0-9[:blank:]]*"
+}
+
+isResponseRedirect () {
+  local curl_raw_response="${1:?"isResponseRedirect.curl_raw_response: parameter null or not set"}"
+  echo "${curl_raw_response:?}" | grep -Eo "^HTTP/[0-9\.]+ [0-9][0-9][0-9][A-Za-z0-9[:blank:]]*" | head -n 1 | grep -Eq "^HTTP/[0-9\.]+ 3[0-9][0-9][A-Za-z0-9[:blank:]]*"
+}
+
+isResponseClientError () {
+  local curl_raw_response="${1:?"isResponseClientError.curl_raw_response: parameter null or not set"}"
+  echo "${curl_raw_response:?}" | grep -Eo "^HTTP/[0-9\.]+ [0-9][0-9][0-9][A-Za-z0-9[:blank:]]*" | head -n 1 | grep -Eq "^HTTP/[0-9\.]+ 4[0-9][0-9][A-Za-z0-9[:blank:]]*"
+}
+
+isResponseServerError () {
+  local curl_raw_response="${1:?"isResponseServerError.curl_raw_response: parameter null or not set"}"
+  echo "${curl_raw_response:?}" | grep -Eo "^HTTP/[0-9\.]+ [0-9][0-9][0-9][A-Za-z0-9[:blank:]]*" | head -n 1 | grep -Eq "^HTTP/[0-9\.]+ 5[0-9][0-9][A-Za-z0-9[:blank:]]*"
+}
+
+outputStderrHeadAndStdoutTail () {
+  local curl_raw_response="${1:-"$NULL"}"
+  # 1xx
+  if isResponseInfo "${curl_raw_response:?}"; then
+    infoln "$(extractCURLRawResponseHead "${curl_raw_response:?}")"
+    outputStderrHeadAndStdoutTail "$(extractCURLRawResponseTail "${curl_raw_response:?}")"
+  # 2xx
+  elif isResponseOK "${curl_raw_response:?}"; then
+    okln "$(extractCURLRawResponseHead "${curl_raw_response:?}")"
+    outputStderrHeadAndStdoutTail "$(extractCURLRawResponseTail "${curl_raw_response:?}")"
+  # 3xx
+  elif isResponseRedirect "${curl_raw_response:?}"; then
+    warnln "$(extractCURLRawResponseHead "${curl_raw_response:?}")"
+    outputStderrHeadAndStdoutTail "$(extractCURLRawResponseTail "${curl_raw_response:?}")"
+  # 4xx
+  elif isResponseClientError "${curl_raw_response:?}"; then
+    errorln "$(extractCURLRawResponseHead "${curl_raw_response:?}")"
+    outputStderrHeadAndStdoutTail "$(extractCURLRawResponseTail "${curl_raw_response:?}")"
+  # 5xx
+  elif isResponseServerError "${curl_raw_response:?}"; then
+    fatalln "$(extractCURLRawResponseHead "${curl_raw_response:?}")"
+    outputStderrHeadAndStdoutTail "$(extractCURLRawResponseTail "${curl_raw_response:?}")"
+  # No Content body
+  elif [[ "${curl_raw_response:?}" == "$NULL" ]]; then
+    true # noop
+  # output body
+  else
+    echo "${curl_raw_response:?}"
+  fi
+}
+
+__main () {
+  curl_bin=$(command -v curl)
+  curl_cmd=("${curl_bin:?}" -i -s "$@")
+  debugln "$ ${curl_cmd[*]}"
+  outputStderrHeadAndStdoutTail "$("${curl_cmd[@]}")"
+}
+
+__main "$@"
