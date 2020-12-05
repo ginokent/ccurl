@@ -15,6 +15,20 @@ if test ! "${BASH_VERSINFO[0]}" -ge 3; then errorln "bash 3.x or later is requir
 REPO_ROOT=$(git rev-parse --show-toplevel)
 CCURL="${REPO_ROOT:?}/bin/ccurl"
 
+test_100 () { (
+  test_cmd=("${CCURL}" https://httpbin.org/status/100)
+  infoln "TEST: ${test_cmd[*]}"
+  assert="\^\[\[0;36m"
+  actual=$("${test_cmd[@]}" 2>&1 | grep -v "\[ debug\] .*curl " | cat -e)
+  debugln "ASSERT" && debugln "${assert:?}"
+  debugln "ACTUAL" && debugln "${actual:?}"
+  if echo "${actual:?}" | grep -q "${assert:?}"; then
+    okln "PASS: ${test_cmd[*]}"
+  else
+    errorln "FAIL: ${test_cmd[*]}"
+  fi
+)} && test_100
+
 test_200 () { (
   test_cmd=("${CCURL}" https://httpbin.org/status/200)
   infoln "TEST: ${test_cmd[*]}"
@@ -43,8 +57,8 @@ test_301 () { (
   fi
 )} && test_301
 
-test_400 () { (
-  test_cmd=("${CCURL}" https://httpbin.org/status/400)
+test_404 () { (
+  test_cmd=("${CCURL}" https://httpbin.org/status/404)
   infoln "TEST: ${test_cmd[*]}"
   assert="\^\[\[0;31m"
   actual=$("${test_cmd[@]}" 2>&1 | grep -v "\[ debug\] .*curl " | cat -e)
@@ -55,5 +69,22 @@ test_400 () { (
   else
     errorln "FAIL: ${test_cmd[*]}"
   fi
-)} && test_400
+)} && test_404
+
+
+test_500 () { (
+  test_cmd=("${CCURL}" https://httpbin.org/status/500)
+  infoln "TEST: ${test_cmd[*]}"
+  assert="\^\[\[1;31m"
+  actual=$("${test_cmd[@]}" 2>&1 | grep -v "\[ debug\] .*curl " | cat -e)
+  debugln "ASSERT" && debugln "${assert:?}"
+  debugln "ACTUAL" && debugln "${actual:?}"
+  if echo "${actual:?}" | grep -q "${assert:?}"; then
+    okln "PASS: ${test_cmd[*]}"
+  else
+    errorln "FAIL: ${test_cmd[*]}"
+  fi
+)} && test_500
+
+
 
