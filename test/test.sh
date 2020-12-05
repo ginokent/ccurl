@@ -1,15 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -E -e -u -o pipefail
 
-export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { [[ ${LOG_SEVERITY:-0} -gt 100 ]] || echo "$*" | sh -c "${pipe_debug:?}"  >&2; }
-export   pipe_info="exec awk \"{print \\\"\\\\033[0;36m\$(date +%Y-%m-%dT%H:%M:%S%z) [  info] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   infoln () { [[ ${LOG_SEVERITY:-0} -gt 200 ]] || echo "$*" | sh -c "${pipe_info:?}"   >&2; }
-export pipe_notice="exec awk \"{print \\\"\\\\033[0;32m\$(date +%Y-%m-%dT%H:%M:%S%z) [notice] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" && noticeln () { [[ ${LOG_SEVERITY:-0} -gt 300 ]] || echo "$*" | sh -c "${pipe_notice:?}" >&2; }
-export   pipe_warn="exec awk \"{print \\\"\\\\033[0;33m\$(date +%Y-%m-%dT%H:%M:%S%z) [  warn] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   warnln () { [[ ${LOG_SEVERITY:-0} -gt 400 ]] || echo "$*" | sh -c "${pipe_warn:?}"   >&2; }
-export  pipe_error="exec awk \"{print \\\"\\\\033[0;31m\$(date +%Y-%m-%dT%H:%M:%S%z) [ error] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  errorln () { [[ ${LOG_SEVERITY:-0} -gt 500 ]] || echo "$*" | sh -c "${pipe_error:?}"  >&2; }
-export  pipe_fatal="exec awk \"{print \\\"\\\\033[1;31m\$(date +%Y-%m-%dT%H:%M:%S%z) [ error] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  fatalln () { [[ ${LOG_SEVERITY:-0} -gt 600 ]] || echo "$*" | sh -c "${pipe_fatal:?}"  >&2; }
+export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { [[ ${LOG_SEVERITY:-0} -gt 100 ]] || echo "$*" | bash -c "${pipe_debug:?}"  1>&2; }
+export   pipe_info="exec awk \"{print \\\"\\\\033[0;36m\$(date +%Y-%m-%dT%H:%M:%S%z) [  info] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   infoln () { [[ ${LOG_SEVERITY:-0} -gt 200 ]] || echo "$*" | bash -c "${pipe_info:?}"   1>&2; }
+export pipe_notice="exec awk \"{print \\\"\\\\033[0;32m\$(date +%Y-%m-%dT%H:%M:%S%z) [notice] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" && noticeln () { [[ ${LOG_SEVERITY:-0} -gt 300 ]] || echo "$*" | bash -c "${pipe_notice:?}" 1>&2; }
+export   pipe_warn="exec awk \"{print \\\"\\\\033[0;33m\$(date +%Y-%m-%dT%H:%M:%S%z) [  warn] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   warnln () { [[ ${LOG_SEVERITY:-0} -gt 400 ]] || echo "$*" | bash -c "${pipe_warn:?}"   1>&2; }
+export  pipe_error="exec awk \"{print \\\"\\\\033[0;31m\$(date +%Y-%m-%dT%H:%M:%S%z) [ error] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  errorln () { [[ ${LOG_SEVERITY:-0} -gt 500 ]] || echo "$*" | bash -c "${pipe_error:?}"  1>&2; }
+export  pipe_fatal="exec awk \"{print \\\"\\\\033[1;31m\$(date +%Y-%m-%dT%H:%M:%S%z) [ error] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  fatalln () { [[ ${LOG_SEVERITY:-0} -gt 600 ]] || echo "$*" | bash -c "${pipe_fatal:?}"  1>&2; }
 
-if test ! "${BASH_VERSINFO[0]}" -ge 3; then errorln "bash 3.x or later is required"; exit 1; fi
+if [[ ! ${BASH_VERSINFO:-0} -ge 3 ]]; then printf '\033[1;31m%s\033[0m\n' "bash 3.x or later is required" 1>&2; exit 1; fi
 
 # var
 REPO_ROOT=$(git rev-parse --show-toplevel)
