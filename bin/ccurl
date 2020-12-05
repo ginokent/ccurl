@@ -1,8 +1,7 @@
 #!/bin/bash
 set -E -e -u -o pipefail
 
-#export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { test "$DEBUG" != true || echo "${*:?"log content"}" | sh -c "${pipe_debug:?}"  1>&2; }
-export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { echo "${*:?"log content"}" | sh -c "${pipe_debug:?}"  1>&2; }
+export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { test "${DEBUG:-true}" != true || echo "${*:?"log content"}" | sh -c "${pipe_debug:?}"  1>&2; }
 export   pipe_info="exec awk \"{print \\\"\\\\033[0;36m\$(date +%Y-%m-%dT%H:%M:%S%z) [  info] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   infoln () { echo "${*:?"log content"}" | sh -c "${pipe_info:?}"   1>&2; }
 export     pipe_ok="exec awk \"{print \\\"\\\\033[0;32m\$(date +%Y-%m-%dT%H:%M:%S%z) [    ok] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&     okln () { echo "${*:?"log content"}" | sh -c "${pipe_ok:?}"     1>&2; }
 export   pipe_warn="exec awk \"{print \\\"\\\\033[0;33m\$(date +%Y-%m-%dT%H:%M:%S%z) [  warn] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&   warnln () { echo "${*:?"log content"}" | sh -c "${pipe_warn:?}"   1>&2; }
