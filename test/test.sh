@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -E -e -u -o pipefail
 
 export  pipe_debug="exec awk \"{print \\\"\\\\033[0;34m\$(date +%Y-%m-%dT%H:%M:%S%z) [ debug] \\\"\\\$0\\\"\\\\033[0m\\\"}\" /dev/stdin" &&  debugln () { [ "${LOG_SEVERITY:--1}" -gt 100 ] 2>/dev/null || echo "$*" | bash -c "${pipe_debug:?}"  1>&2; }
@@ -15,6 +14,7 @@ if [ ! "${BASH_VERSINFO:-0}" -ge 3 ]; then printf '\033[1;31m%s\033[0m\n' "bash 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 CCURL="${REPO_ROOT:?}/bin/ccurl"
 
+# test
 test_100 () { (
   test_cmd=("${CCURL}" https://httpbin.org/status/100)
   infoln "TEST: ${test_cmd[*]}"
@@ -71,7 +71,6 @@ test_404 () { (
   fi
 )} && test_404
 
-
 test_500 () { (
   test_cmd=("${CCURL}" https://httpbin.org/status/500)
   infoln "TEST: ${test_cmd[*]}"
@@ -85,6 +84,3 @@ test_500 () { (
     errorln "FAIL: ${test_cmd[*]}"
   fi
 )} && test_500
-
-
-
